@@ -1,0 +1,82 @@
+name: Launch EC2 Instance (GitHub Runner)
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: "us-east-1"
+
+jobs:
+  launch-ec2:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch Resource IDs
+        run: |
+          echo "Fetching AWS resource details..."
+
+          SUBNET_ID=$(aws ec2 describe-subnets \
+            --filters "Name=tag:Name,Values=public-subnet" \
+            --query "Subnets[0].SubnetId" --output text)
+          echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
+
+          SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=group-name,Values=allow_ssh_and_app" \
+            --query "SecurityGroups[0].GroupId" --output text)
+          echo "SECURITY_GROUP_ID=$SECURITY_GROUP_ID" >> $GITHUB_ENV
+
+          IAM_PROFILE="ec2_ssm_role"
+          echo "IAM_PROFILE=$IAM_PROFILE" >> $GITHUB_ENV
+
+          KEY_NAME="githubaction"
+          echo "KEY_NAME=$KEY_NAME" >> $GITHUB_ENV
+
+          AMI_ID=$(aws ec2 describe-images \
+            --owners amazon \
+            --filters "Name=name,Values=amzn2-ami-hvm-2.0.*-x86_64-gp2" \
+            --query "Images | sort_by(@, &CreationDate) | [-1].ImageId" --output text)
+          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+
+          echo "INSTANCE_TYPE=t2.micro" >> $GITHUB_ENV
+
+      - name: Launch EC2 Instance
+        run: |
+          echo "Launching EC2 instance..."
+
+          INSTANCE_ID=$(aws ec2 run-instances \
+            --image-id $AMI_ID \
+            --count 1 \
+            --instance-type $INSTANCE_TYPE \
+            --key-name $KEY_NAME \
+            --subnet-id $SUBNET_ID \
+            --security-group-ids $SECURITY_GROUP_ID \
+            --associate-public-ip-address \
+            --iam-instance-profile Name=$IAM_PROFILE \
+            --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=GitHubLaunchedInstance}]' \
+            --query "Instances[0].InstanceId" --output text)
+
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+          echo "Launched instance ID: $INSTANCE_ID"
+
+      - name: Fetch Public IP
+        run: |
+          echo "Waiting for EC2 public IP..."
+
+          sleep 20
+
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+
+          echo "EC2_PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+          echo "✅ EC2 Instance Public IP: $PUBLIC_IP"
