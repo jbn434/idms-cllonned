@@ -82,7 +82,7 @@ EOF
             --subnet-id $SUBNET_ID \
             --security-group-ids $SECURITY_GROUP_ID \
             --associate-public-ip-address \
-            --iam-instance-profile Name=ec2_ssm_profile \
+            --iam-instance-profile Arn=arn:aws:iam::084828592148:instance-profile/ec2_ssm_profile
             --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=GitHubRunnerEC2}]' \
             --user-data "$USER_DATA" \
             --query "Instances[0].InstanceId" --output text)
