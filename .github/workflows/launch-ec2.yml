@@ -36,6 +36,7 @@ jobs:
           echo "SECURITY_GROUP_ID=$SECURITY_GROUP_ID" >> $GITHUB_ENV
 
           IAM_PROFILE="ec2_ssm_profile"
+          echo "IAM_PROFILE=$IAM_PROFILE"
           echo "IAM_PROFILE=$IAM_PROFILE" >> $GITHUB_ENV
 
           KEY_NAME="githubaction"
