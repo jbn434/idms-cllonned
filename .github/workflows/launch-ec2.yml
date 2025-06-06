@@ -1,8 +1,14 @@
-  launch-another-ec2:
-    needs: build-and-deploy
+name: Launch EC2 GitHub Runner
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: "us-east-1"
+
+jobs:
+  launch-runner:
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: "us-east-1"
 
     steps:
       - name: Configure AWS Credentials
@@ -12,55 +18,69 @@
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Fetch Subnet, SG, IAM, AMI
+      - name: Fetch Resource IDs
         run: |
+          echo "Fetching subnet, SG, and AMI..."
           SUBNET_ID=$(aws ec2 describe-subnets \
             --filters "Name=tag:Name,Values=public-subnet" \
             --query "Subnets[0].SubnetId" --output text)
+          echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
 
           SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
             --filters "Name=group-name,Values=allow_ssh_and_app" \
             --query "SecurityGroups[0].GroupId" --output text)
-
-          IAM_PROFILE="ec2_ssm_profile"
-          KEY_NAME="githubaction"
+          echo "SECURITY_GROUP_ID=$SECURITY_GROUP_ID" >> $GITHUB_ENV
 
           AMI_ID=$(aws ec2 describe-images \
             --owners amazon \
             --filters "Name=name,Values=amzn2-ami-hvm-2.0.*-x86_64-gp2" \
             --query "Images | sort_by(@, &CreationDate) | [-1].ImageId" --output text)
-
-          echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
-          echo "SECURITY_GROUP_ID=$SECURITY_GROUP_ID" >> $GITHUB_ENV
-          echo "IAM_PROFILE=$IAM_PROFILE" >> $GITHUB_ENV
-          echo "KEY_NAME=$KEY_NAME" >> $GITHUB_ENV
           echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
-      - name: Launch EC2 Instance
+      - name: Launch EC2 as GitHub Runner
         run: |
-          echo "Launching EC2..."
+          echo "Launching EC2 instance as GitHub runner..."
+
+          USER_DATA=$(cat <<EOF
+#!/bin/bash
+yum update -y
+yum install -y docker git jq
+systemctl start docker
+usermod -aG docker ec2-user
+
+cd /home/ec2-user
+GH_OWNER="${{ secrets.GH_OWNER }}"
+GH_REPO="${{ secrets.GH_REPO }}"
+GH_PAT="${{ secrets.GH_RUNNER_TOKEN }}"
+
+ARCH_TYPE="x64"
+RUNNER_VERSION="2.316.1"
+curl -LO https://github.com/actions/runner/releases/download/v\$RUNNER_VERSION/actions-runner-linux-\$ARCH_TYPE-\$RUNNER_VERSION.tar.gz
+mkdir actions-runner && tar xzf actions-runner-linux-\$ARCH_TYPE-\$RUNNER_VERSION.tar.gz -C actions-runner
+cd actions-runner
+
+TOKEN=\$(curl -s -X POST -H "Authorization: token \$GH_PAT" \
+  https://api.github.com/repos/\$GH_OWNER/\$GH_REPO/actions/runners/registration-token | jq -r .token)
+
+./config.sh --url https://github.com/\$GH_OWNER/\$GH_REPO \
+  --token \$TOKEN --unattended --name ec2-runner --labels ec2,github
+
+./run.sh
+EOF
+)
 
           INSTANCE_ID=$(aws ec2 run-instances \
             --image-id $AMI_ID \
             --count 1 \
-            --instance-type t2.micro \
-            --key-name $KEY_NAME \
+            --instance-type t2.medium \
+            --key-name githubaction \
             --subnet-id $SUBNET_ID \
             --security-group-ids $SECURITY_GROUP_ID \
             --associate-public-ip-address \
-            --iam-instance-profile Name=$IAM_PROFILE \
-            --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ExtraRunner}]' \
+            --iam-instance-profile Name=ec2_ssm_profile \
+            --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=GitHubRunnerEC2}]' \
+            --user-data "$USER_DATA" \
             --query "Instances[0].InstanceId" --output text)
 
-          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-
-      - name: Get Public IP
-        run: |
-          sleep 20
-
-          PUBLIC_IP=$(aws ec2 describe-instances \
-            --instance-ids $INSTANCE_ID \
-            --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
-
-          echo "✅ New EC2 Public IP: $PUBLIC_IP"
+          echo "✅ GitHub Runner EC2 instance launched: $INSTANCE_ID"
 
