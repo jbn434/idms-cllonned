@@ -1,4 +1,4 @@
-name: Launch EC2 Instance (GitHub Runner)
+name: Launch EC2 Instance (GitHub-Runner)
 
 on:
   workflow_dispatch:
@@ -35,7 +35,7 @@ jobs:
             --query "SecurityGroups[0].GroupId" --output text)
           echo "SECURITY_GROUP_ID=$SECURITY_GROUP_ID" >> $GITHUB_ENV
 
-          IAM_PROFILE="ec2_ssm_role"
+          IAM_PROFILE="ec2_ssm_profile"
           echo "IAM_PROFILE=$IAM_PROFILE" >> $GITHUB_ENV
 
           KEY_NAME="githubaction"
