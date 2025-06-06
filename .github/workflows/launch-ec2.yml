@@ -20,7 +20,7 @@ jobs:
 
       - name: Fetch Resource IDs
         run: |
-          echo "Fetching subnet, SG, and AMI..."
+          echo "Fetching subnet, SG..."
           SUBNET_ID=$(aws ec2 describe-subnets \
             --filters "Name=tag:Name,Values=public-subnet" \
             --query "Subnets[0].SubnetId" --output text)
@@ -31,24 +31,18 @@ jobs:
             --query "SecurityGroups[0].GroupId" --output text)
           echo "SECURITY_GROUP_ID=$SECURITY_GROUP_ID" >> $GITHUB_ENV
 
-          AMI_ID=$(aws ec2 describe-images \
-            --owners amazon \
-            --filters "Name=name,Values=amzn2-ami-hvm-2.0.*-x86_64-gp2" \
-            --query "Images | sort_by(@, &CreationDate) | [-1].ImageId" --output text)
-          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
-
       - name: Launch EC2 as GitHub Runner
         run: |
           echo "Launching EC2 instance as GitHub runner..."
 
           USER_DATA=$(cat <<EOF
 #!/bin/bash
-yum update -y
-yum install -y docker git jq
+apt-get update -y
+apt-get install -y docker.io git jq
 systemctl start docker
-usermod -aG docker ec2-user
+usermod -aG docker ubuntu
 
-cd /home/ec2-user
+cd /home/ubuntu
 GH_OWNER="${{ secrets.GH_OWNER }}"
 GH_REPO="${{ secrets.GH_REPO }}"
 GH_PAT="${{ secrets.GH_RUNNER_TOKEN }}"
@@ -67,7 +61,18 @@ TOKEN=\$(curl -s -X POST -H "Authorization: token \$GH_PAT" \
 
 ./run.sh
 EOF
-)
+          )
+
+          # Get latest Ubuntu 22.04 AMI
+          AMI_ID=$(aws ec2 describe-images \
+            --owners 099720109477 \
+            --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*" \
+                      "Name=architecture,Values=x86_64" \
+                      "Name=virtualization-type,Values=hvm" \
+            --query "Images | sort_by(@, &CreationDate) | [-1].ImageId" \
+            --output text)
+
+          echo "Using AMI: $AMI_ID"
 
           INSTANCE_ID=$(aws ec2 run-instances \
             --image-id $AMI_ID \
