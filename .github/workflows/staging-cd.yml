@@ -2,7 +2,7 @@ name: Build and Deploy License API [STAGING]
 
 on:
   push:
-  # workflow_dispatch:  # Uncomment this to allow manual trigger
+  # workflow_dispatch:  # Uncomment to allow manual trigger
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -102,20 +102,14 @@ jobs:
           cd /home/ubuntu
           if ! command -v docker &> /dev/null; then
             echo "Docker not found, installing..."
-            sudo apt update && sudo apt install -y docker.io
+            sudo apt update && sudo apt install -y docker.io docker-compose
             sudo usermod -aG docker ubuntu
             sudo systemctl start docker
             sudo systemctl enable docker
-            newgrp docker <<EONG
-              sudo apt install -y docker-compose
-              docker load < api.tar.gz
-              docker-compose down
-              docker-compose up -d --build
-EONG
-          else
-            echo "Docker already installed."
-            docker load < api.tar.gz
-            docker-compose down
-            docker-compose up -d --build
           fi
+
+          echo "Loading and running Docker containers..."
+          docker load < api.tar.gz
+          docker-compose down
+          docker-compose up -d --build
 EOF
