@@ -2,11 +2,12 @@ name: Build and Deploy License API [STAGING]
 
 on:
   push:
-  #workflow_dispatch:  # Only runs when manually triggered
+  # workflow_dispatch:  # Uncomment this to allow manual trigger
+
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_REGION: "us-east-1"
+  AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
   build-and-deploy:
@@ -15,28 +16,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.0  # Update if needed
+          terraform_version: 1.5.0
 
       - name: Initialize Terraform
         run: |
           cd infra/VPC
           terraform init -backend-config="bucket=my-terraform-state-bckt43"
 
-
       - name: Terraform Plan
         run: |
           cd infra/VPC
           terraform plan -var-file=stage.tfvars
+
       - name: Terraform Apply
         run: |
           cd infra/VPC
           terraform apply -auto-approve -var-file=stage.tfvars
-
-
 
       - name: Extract EC2 Public IP from Terraform Output
         id: extract_ip
@@ -50,36 +48,48 @@ jobs:
             echo "$RAW_OUTPUT"
             exit 1
           fi
-
           echo "✅ EC2 Public IP found: $IP"
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
+      - name: Install AWS CLI if not available
+        run: |
+          if ! command -v aws &> /dev/null; then
+            echo "Installing AWS CLI..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+          fi
 
+      - name: Configure AWS CLI
+        run: |
+          aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          aws configure set region "${{ secrets.AWS_REGION }}"
 
-
-      - name: Get environment variables
-        uses: ./.github/actions/fetch-env
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: "us-east-1"
+      - name: Fetch environment variables from AWS SSM
+        run: |
+          echo "Fetching SSM Parameter: ${{ secrets.SSM_PARAMETER_NAME }}"
+          aws ssm get-parameter \
+            --name "${{ secrets.SSM_PARAMETER_NAME }}" \
+            --with-decryption \
+            --output text \
+            --query Parameter.Value \
+            --region "${{ secrets.AWS_REGION }}" > docker/.env
+          echo "✅ .env file written with $(wc -l < docker/.env) lines"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-
-      - name: Build and Push Docker Image
+      - name: Build and Save Docker Image
         run: |
           docker build -t api -f docker/Dockerfile docker/
           docker save api | gzip > docker/api.tar.gz
-
 
       - name: Add SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-
 
       - name: Deploy to EC2 via SSH
         run: |
@@ -97,18 +107,15 @@ jobs:
             sudo systemctl start docker
             sudo systemctl enable docker
             newgrp docker <<EONG
-              echo "Installing Docker Compose..."
               sudo apt install -y docker-compose
-              docker --version
-              docker-compose --version
               docker load < api.tar.gz
               docker-compose down
               docker-compose up -d --build
-          EONG
+EONG
           else
-             echo "Docker already installed."
-             docker load < api.tar.gz
-             docker-compose down
-             docker-compose up -d --build
+            echo "Docker already installed."
+            docker load < api.tar.gz
+            docker-compose down
+            docker-compose up -d --build
           fi
-
+EOF
