@@ -29,11 +29,15 @@ jobs:
         run: |
           cd infra/vpc
           terraform plan -var-file=stage.tfvars
+        env:
+          TF_VAR_ami_id: ${{ secrets.AMI_ID }}
 
       - name: Terraform Apply
         run: |
           cd infra/vpc
           terraform apply -auto-approve -var-file=stage.tfvars
+        env:
+          TF_VAR_ami_id: ${{ secrets.AMI_ID }}
 
       - name: Extract EC2 Public IP from Terraform Output
         id: extract_ip
