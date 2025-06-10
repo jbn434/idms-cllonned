@@ -112,8 +112,3 @@ variable "key_name" {
 variable "public_key_path" {
   default = "~/.ssh/github-ci-key.pub"
 }
-variable "ami" {
-  description = "AMI ID to use for EC2"
-  type        = string
-}
-
