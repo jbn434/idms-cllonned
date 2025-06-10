@@ -2,16 +2,16 @@ name: Build and Deploy License API [STAGING]
 
 on:
   push:
-  # workflow_dispatch:  # Uncomment to allow manual trigger if needed
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_REGION: ${{ secrets.AWS_REGION }} # You should add this secret in GitHub
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -51,31 +51,27 @@ jobs:
           echo "✅ EC2 Public IP found: $IP"
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
-      - name: Install AWS CLI if not available
+      - name: Install AWS CLI and Fetch .env from SSM
         run: |
           if ! command -v aws &> /dev/null; then
-            echo "Installing AWS CLI..."
+            echo "AWS CLI not found, installing..."
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
           fi
 
-      - name: Configure AWS CLI
-        run: |
-          aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
-          aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          aws configure set region "${{ secrets.AWS_REGION }}"
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set region $AWS_REGION
 
-      - name: Fetch environment variables from AWS SSM
-        run: |
-          echo "Fetching SSM Parameter: ${{ secrets.SSM_PARAMETER_NAME }}"
           aws ssm get-parameter \
-            --name "${{ secrets.SSM_PARAMETER_NAME }}" \
+            --name drivers-license-api-staging-env \
             --with-decryption \
             --output text \
             --query Parameter.Value \
-            --region "${{ secrets.AWS_REGION }}" > docker/.env
-          echo "✅ .env file written with $(wc -l < docker/.env) lines"
+            --region $AWS_REGION > docker/.env
+
+          echo ".env file written with $(wc -l < docker/.env) lines"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -96,20 +92,4 @@ jobs:
           echo "Deploying to EC2 at ${{ env.EC2_IP }}"
           rsync -avz --progress -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" docker/.env ubuntu@${{ env.EC2_IP }}:/home/ubuntu/
           rsync -avz --progress -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" docker/docker-compose.yml ubuntu@${{ env.EC2_IP }}:/home/ubuntu/
-          rsync -avz --progress -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" docker/api.tar.gz ubuntu@${{ env.EC2_IP }}:/home/ubuntu/
-
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ env.EC2_IP }} << 'EOF'
-cd /home/ubuntu
-if ! command -v docker &> /dev/null; then
-  echo "Docker not found, installing..."
-  sudo apt update && sudo apt install -y docker.io docker-compose
-  sudo usermod -aG docker ubuntu
-  sudo systemctl start docker
-  sudo systemctl enable docker
-fi
-
-echo "Loading and running Docker containers..."
-docker load < api.tar.gz
-docker-compose down
-docker-compose up -d --build
-EOF
+          rsync -avz --progress -e "ssh -i ~/.ssh/id_rsa -o StrictHos_
