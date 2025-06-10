@@ -1,15 +1,16 @@
-name: Build and Deploy License API [STAGING]
+name: Build and Deploy License  API [STAGING]
 
 on:
   push:
 
 env:
-  TF_VAR_ami: ${{ secrets.AMI_ID }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -20,31 +21,16 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Initialize Terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           cd infra/vpc
-          terraform init \
-            -backend-config="bucket=my-terraform-state-bckt43" \
-            -backend-config="key=staging.tfstate" \
-            -backend-config="region=$AWS_REGION"
+          terraform init -backend-config="bucket=my-terraform-state-bckt43"
 
       - name: Terraform Plan
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           cd infra/vpc
           terraform plan -var-file=stage.tfvars
 
       - name: Terraform Apply
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           cd infra/vpc
           terraform apply -auto-approve -var-file=stage.tfvars
@@ -65,10 +51,6 @@ jobs:
           echo "EC2_IP=$IP" >> $GITHUB_ENV
 
       - name: Install AWS CLI & Fetch Environment Variables
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           if ! command -v aws &> /dev/null; then
             echo "Installing AWS CLI..."
@@ -111,7 +93,7 @@ jobs:
           rsync -avz --progress -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" docker/docker-compose.yml ubuntu@$EC2_IP:/home/ubuntu/
           rsync -avz --progress -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" docker/api.tar.gz ubuntu@$EC2_IP:/home/ubuntu/
 
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_IP bash -c "''
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@$EC2_IP bash -c "'
             cd /home/ubuntu
             if ! command -v docker &> /dev/null; then
               echo \"Docker not found, installing...\"
@@ -126,4 +108,3 @@ jobs:
             docker-compose down
             docker-compose up -d --build
           '"
-
