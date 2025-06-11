@@ -1,5 +1,6 @@
 ###VPC###
 environment = "stage"
+region      = "us-east-1"
 
 common_tags = {
   "Owner" = "IDLMS"

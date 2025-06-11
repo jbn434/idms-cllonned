@@ -22,6 +22,9 @@ services:
 
   app:
     image: api:latest
+    build:
+      context: /home/ubuntu/idms/src
+      dockerfile: /home/ubuntu/idms/docker/Dockerfile
     container_name: api
     restart: always
     ports:
@@ -34,3 +37,4 @@ services:
 
 volumes:
   pgdata:
+

@@ -1,21 +1,32 @@
-# Use Node.js as the base image
+# idms/docker/Dockerfile
+
 FROM node:18-alpine
+
+# Install PostgreSQL client
 RUN apk add --no-cache postgresql-client
-# Set the working directory
+
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy package.json and install dependencies
-COPY package.json ./
+# Copy package files first for caching layer
+COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy application files
+# Copy the rest of the application source code
 COPY . .
 
-# Build the Next.js app
+# Copy build-related configs (optional, already included in COPY . . if in root)
+# COPY tsconfig*.json ./
+# COPY nest-cli.json ./
+
+# Build the app
 RUN npm run build
 
-# Expose the Next.js default port
+# Expose app port
 EXPOSE 4000
 
-# Start the Next.js server
+# Start the app
 CMD ["npm", "run", "start:prod"]
+

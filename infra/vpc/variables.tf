@@ -13,6 +13,11 @@ variable "common_tags" {
   type = map
 }
 
+variable "ami_id" {
+  description = "AMI ID for EC2 instance"
+  type        = string
+}
+
 ###VPC###
 variable "instance_tenancy" {
   type = string
