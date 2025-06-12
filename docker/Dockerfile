@@ -15,9 +15,9 @@ COPY src/package*.json ./
 RUN npm install
 
 # Copy the rest of the application source code
-COPY src/ .
+COPY src/ ./src
 
-COPY .env .env
+COPY docker/.env .env
 
 # Copy build-related configs (optional, already included in COPY . . if in root)
 # COPY tsconfig*.json ./
