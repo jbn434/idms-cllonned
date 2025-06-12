@@ -23,7 +23,7 @@ services:
   app:
     image: api:latest
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
     container_name: api
     restart: always
