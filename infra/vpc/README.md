@@ -1,5 +1,6 @@
 
 backend.tf
+
 This Terraform configuration sets up a remote backend using Amazon S3. A remote backend allows Terraform to store its state file (terraform.tfstate) in a centralized and versioned location, making it ideal for team collaboration and CI/CD workflows.
 
 
@@ -7,6 +8,7 @@ This Terraform configuration sets up a remote backend using Amazon S3. A remote 
 
 
 data.tf
+
 This block retrieves values from an existing Terraform state file stored remotely in Amazon S3. It allows one Terraform configuration to reference outputs from another.
 
 
@@ -15,6 +17,7 @@ This block retrieves values from an existing Terraform state file stored remotel
 
 
 dev.tfvars
+
 This section defines the networking architecture for the environment (dev), including the VPC, subnets, internet gateway (IGW), NAT gateways (NGWs), and routing. These values are typically passed to a Terraform module that provisions networking components in AWS.
 
 
@@ -22,6 +25,7 @@ This section defines the networking architecture for the environment (dev), incl
 
 
 ec2.tf
+
 This Terraform resource provisions an Amazon EC2 instance to host the Backend API for the IDLMS project. The instance is configured with networking, IAM, SSM, and security best practices.
 
 
@@ -30,6 +34,7 @@ This Terraform resource provisions an Amazon EC2 instance to host the Backend AP
 
 
 iam.tf
+
 This configuration creates the necessary IAM role and instance profile to allow EC2 instances to use AWS Systems Manager (SSM). This enables secure, keyless access to EC2 instances using SSM Session Manager, avoiding the need for SSH and open ports.
 
 
@@ -38,6 +43,7 @@ This configuration creates the necessary IAM role and instance profile to allow 
 
 
 main.tf
+
 This Terraform block defines a reusable VPC module sourced from a GitHub repository. The module provisions the full networking infrastructure for an AWS environment, including the VPC itself, internet and NAT gateways, public and private subnets, and routing.
 The source parameter points to the vpc folder within a remote GitHub repository , making the module easy to reuse across projects.
 The environment, common_tags, and region variables help standardize the naming and tagging of AWS resources, and define the AWS region where the resources are deployed.
@@ -55,6 +61,7 @@ This modular approach simplifies infrastructure reuse and ensures consistency ac
 
 
 outputs.tf
+
 This section defines various output values that are made available after Terraform applies the configuration. These outputs are useful for referencing important resource attributes in other modules or in automation scripts (like CI/CD pipelines).
 
 🆔 VPC & Networking Outputs
@@ -78,6 +85,7 @@ ec2_public_ip: Outputs the public IP address of the EC2 instance named web. This
 
 
 prod.tfvars
+
 The prod.tfvars file contains production-specific variable values for your Terraform configuration. This file is used to override default variables with environment-specific values when deploying your infrastructure to the production environment.
 
 
@@ -87,6 +95,7 @@ The prod.tfvars file contains production-specific variable values for your Terra
 
 
 provider.tf
+
 This block configures the AWS provider in Terraform, specifying the AWS region where resources will be created.
 
 
@@ -95,6 +104,7 @@ This block configures the AWS provider in Terraform, specifying the AWS region w
 
 
 securitygroup.tf
+
 This Terraform resource creates a security group named allow_ssh_and_app within your VPC. It controls inbound and outbound network traffic to your EC2 instances.
 The security group allows inbound SSH access (port 22) from anywhere (0.0.0.0/0), enabling you to remotely connect to your servers.
 It also allows inbound traffic on port 4000, which is the application port for your backend API, accessible globally.
@@ -109,6 +119,7 @@ Finally, the group is tagged with the name "allow-ssh-and-app" for easy identifi
 
 
 stage.tfvars
+
 This file defines the configuration values specific to the staging environment to be used by your Terraform VPC module:
 
 General Settings:
@@ -142,6 +153,7 @@ instance_type: Specifies the EC2 instance type as t2.micro for resources launche
 
 
 securitygroup.tf
+
 This security group is designed to control network access to your EC2 instances within the specified VPC.
 
 Ingress Rules:
@@ -166,6 +178,7 @@ Named "allow-ssh-and-app" for easy identification in AWS.
 
 
 variables.tf
+
 This file defines all the input variables used by the Terraform configuration for provisioning the VPC, subnets, security groups, and EC2 instances.
 
 General Variables
@@ -219,11 +232,15 @@ map_public_ip_on_launch: Boolean that determines if instances get a public IP au
 route_table_name: The name of the route table associated with public subnets.
 
 EC2 Instance Variables
+
 instance_type
+
 Defines the EC2 instance type to launch, with a default of "t2.micro".
 
 key_name
+
 Name of the SSH key pair to use for EC2 instances.
 
 public_key_path
+
 Path to the SSH public key used for key pair creation or verification.
