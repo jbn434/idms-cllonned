@@ -33,3 +33,66 @@ Command	Description
 npm install	Installs dependencies
 npm run build	Builds the NestJS project
 npm run start:prod	Starts the app in prod mode
+
+
+📦 Docker Compose Overview (Services & Workflow)
+This docker-compose.yml defines a two-service application: a PostgreSQL database and a Node.js API.
+
+🗄️ PostgreSQL Service (postgres)
+Image: Uses the official latest PostgreSQL Docker image.
+
+Container Name: Named postgres.
+
+Environment Configuration:
+
+Loads environment variables from .env.
+
+Sets database user, password, and name via:
+
+POSTGRES_USER: ${DB_USERNAME}
+
+POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+POSTGRES_DB: ${DB_NAME}
+
+Health Check:
+
+Uses pg_isready to ensure PostgreSQL is ready before other services depend on it.
+
+Ports:
+
+Maps container port 5432 to host port 5432 for DB access.
+
+Volumes:
+
+Persists data via a Docker volume pgdata.
+
+🚀 API Application Service (app)
+Image: Uses a custom-built image named api:latest.
+
+Build Context:
+
+Builds from Dockerfile located at docker/Dockerfile with root context as ...
+
+Container Name: Named api.
+
+Restart Policy: Always restarts on failure or container stop.
+
+Ports:
+
+Exposes port 4000 on the host.
+
+Dependencies:
+
+Waits for the postgres service to become healthy before starting.
+
+Environment:
+
+Loads environment variables from .env.
+
+🗃️ Volumes
+pgdata:
+
+Named volume used by the postgres container to persist database data across restarts.
+
+
