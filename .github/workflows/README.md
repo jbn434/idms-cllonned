@@ -23,7 +23,7 @@ Ensure the following secrets are configured in your GitHub repository under **Se
 |--------------------------|----------------------------------------------|
 | `AWS_ACCESS_KEY_ID`      | AWS IAM user access key                      |
 | `AWS_SECRET_ACCESS_KEY`  | AWS IAM user secret key                      |
-| `AWS_REGION`             | AWS region (e.g., `us-east-1`)              |
+| `AWS_REGION`             | AWS region                                   |
 | `AMI_ID`                 | AMI ID to launch the EC2 instance from      |
 | `SSH_PRIVATE_KEY`        | SSH private key to connect to EC2 instance  |
 
