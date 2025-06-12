@@ -23,7 +23,7 @@ services:
   app:
     image: api:latest
     build:
-      context: /home/ubuntu/idms
+      context: .
       dockerfile: docker/Dockerfile
     container_name: api
     restart: always
