@@ -9,18 +9,22 @@ RUN apk add --no-cache postgresql-client
 WORKDIR /app
 
 # Copy package files first for caching layer
-COPY src/package*.json ./
+COPY src/package*.json ./src/
+COPY src/tsconfig.json ./src/
+
+# Set working dir to source
+WORKDIR /app/src
 
 # Install dependencies
 RUN npm install
 
 # Copy the rest of the application source code
-COPY src/ ./src
+COPY src/ ./
 
-COPY docker/.env .env
+COPY docker/.env ../.env
 
 # Copy build-related configs (optional, already included in COPY . . if in root)
-# COPY tsconfig*.json ./
+#COPY tsconfig*.json ./
 # COPY nest-cli.json ./
 
 # Build the app
