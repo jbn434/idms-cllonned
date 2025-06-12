@@ -81,7 +81,7 @@ jobs:
 
       - name: Build and Save Docker Image
         run: |
-          docker build -t api -f docker/Dockerfile docker/
+          docker build -t api -f docker/Dockerfile .
           docker save api | gzip > docker/api.tar.gz
 
       - name: Add SSH key
