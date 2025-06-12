@@ -22,9 +22,6 @@ services:
 
   app:
     image: api:latest
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
     container_name: api
     restart: always
     ports:
