@@ -1,7 +1,8 @@
  ###General###
 variable "environment" {}
 variable "region" {
-  default = ""
+  description = "AWS region"
+  type        = string
 }
 
 variable "tf_state_bucket" {
