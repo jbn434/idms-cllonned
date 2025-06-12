@@ -9,13 +9,15 @@ RUN apk add --no-cache postgresql-client
 WORKDIR /app
 
 # Copy package files first for caching layer
-COPY package*.json ./
+COPY src/package*.json ./
 
 # Install dependencies
 RUN npm install
 
 # Copy the rest of the application source code
-COPY . .
+COPY src/ .
+
+COPY docker/.env .env
 
 # Copy build-related configs (optional, already included in COPY . . if in root)
 # COPY tsconfig*.json ./

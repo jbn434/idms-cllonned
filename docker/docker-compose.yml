@@ -23,8 +23,8 @@ services:
   app:
     image: api:latest
     build:
-      context: /home/ubuntu/idms/src
-      dockerfile: /home/ubuntu/idms/docker/Dockerfile
+      context: /home/ubuntu/idms
+      dockerfile: docker/Dockerfile
     container_name: api
     restart: always
     ports:
