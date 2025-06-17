@@ -9,9 +9,14 @@ resource "aws_instance" "web" {
   user_data = <<-EOF
               #!/bin/bash
               sudo yum update -y
-              sudo yum install -y amazon-ssm-agent
+              sudo yum install -y amazon-ssm-agent amazon-cloudwatch-agent
               sudo systemctl enable amazon-ssm-agent
               sudo systemctl start amazon-ssm-agent
+              /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+              -a fetch-config \
+              -m ec2 \
+              -c ssm:/cloudwatch/docker-config \
+              -s
               EOF
   tags = {
     Name = "Backend API IDLMS"
