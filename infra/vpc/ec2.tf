@@ -6,20 +6,30 @@ resource "aws_instance" "web" {
   vpc_security_group_ids = [aws_security_group.open_ssh_and_app.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
   key_name               = "githubaction"
+
   user_data = <<-EOF
               #!/bin/bash
-              sudo yum update -y
-              sudo yum install -y amazon-ssm-agent amazon-cloudwatch-agent
-              sudo systemctl enable amazon-ssm-agent
-              sudo systemctl start amazon-ssm-agent
+              apt-get update -y
+              apt-get install -y curl unzip wget
+
+              # Install SSM Agent
+              snap install amazon-ssm-agent --classic
+              systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent
+              systemctl start snap.amazon-ssm-agent.amazon-ssm-agent
+
+              # Install CloudWatch Agent
+              wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+              dpkg -i amazon-cloudwatch-agent.deb
+
+              # Start CloudWatch Agent
               /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-              -a fetch-config \
-              -m ec2 \
-              -c ssm:/cloudwatch/docker-config \
-              -s
+                -a fetch-config \
+                -m ec2 \
+                -c ssm:/cloudwatch/docker-config \
+                -s
               EOF
+
   tags = {
     Name = "Backend API IDLMS"
   }
 }
-
