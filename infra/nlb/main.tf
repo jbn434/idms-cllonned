@@ -8,6 +8,7 @@ module "group_1_nlb" {
   target_ips           = [data.terraform_remote_state.vpc.outputs.ec2_private_ip]
   target_port          = var.target_port
 
+  # Use PUBLIC subnets now
   subnet_mapping = [
     for subnet_id in data.terraform_remote_state.vpc.outputs.private_subnets_ids :
     { subnet_id = subnet_id }

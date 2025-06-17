@@ -9,6 +9,8 @@ common_tags = {
 }
 tf_state_bucket = "my-terraform-state-bckt43"
 
+ami_id = "ami-084568db4383264d4"
+
 enable_dns_support          = true
 enable_dns_hostnames        = true
 vpc_name                    = "stage-idlms-vpc"

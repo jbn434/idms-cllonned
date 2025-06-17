@@ -17,6 +17,7 @@ variable "common_tags" {
 variable "ami_id" {
   description = "AMI ID for EC2 instance"
   type        = string
+  default     = "ami-084568db4383264d4"
 }
 
 ###VPC###
