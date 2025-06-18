@@ -1,11 +1,11 @@
 tf_state_bucket = "my-terraform-state-bckt43"
-environment     = "dev"
 region          = "us-east-1"
 
 load_balancer_type = "network"
 internal           = true
 target_port        = 4000
 lb_create_sg       = true
+access_logs_prefix = "dev/nlb"
 
 lb_egress_roles = [
   {

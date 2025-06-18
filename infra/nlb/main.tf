@@ -1,3 +1,9 @@
+module "cloudwatch" {
+  source      = "../cloudwatch"
+  environment = var.environment
+  region      = var.region
+}
+
 module "group_1_nlb" {
   source               = "../../../terraform-modules"
 
@@ -7,8 +13,8 @@ module "group_1_nlb" {
   vpc_id               = data.terraform_remote_state.vpc.outputs.vpc_id
   target_ips           = [data.terraform_remote_state.vpc.outputs.ec2_private_ip]
   target_port          = var.target_port
+  environment          = var.environment
 
-  # Use PUBLIC subnets now
   subnet_mapping = [
     for subnet_id in data.terraform_remote_state.vpc.outputs.private_subnets_ids :
     { subnet_id = subnet_id }
@@ -20,5 +26,8 @@ module "group_1_nlb" {
   egress_roles  = var.lb_egress_roles
 
   tags = var.common_tags
-}
 
+  # ✅ Use S3 bucket created by local cloudwatch module
+  access_logs_bucket = module.cloudwatch.nlb_logs_bucket
+  access_logs_prefix = var.access_logs_prefix
+}

@@ -7,3 +7,6 @@ output "api_key_value" {
   sensitive = true
 }
 
+output "api_log_group_name" {
+  value = aws_cloudwatch_log_group.api_logs.name
+}

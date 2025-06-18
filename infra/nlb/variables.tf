@@ -40,11 +40,18 @@ variable "lb_egress_roles" {
 variable "tf_state_bucket" {
   type = string
 }
+
 variable "environment" {
+description = "Environment name (e.g., dev, stage, prod)"
   type = string
 }
 
 variable "region" {
   description = "The AWS region"
+  type        = string
+}
+
+variable "access_logs_prefix" {
+  description = "Prefix within the S3 bucket for NLB access logs"
   type        = string
 }
